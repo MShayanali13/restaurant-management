@@ -1,4 +1,4 @@
-"use client";
+
 
 import React from "react";
 import {
@@ -19,7 +19,8 @@ const styles = StyleSheet.create({
     padding: 6,
     fontSize: 5,
     fontFamily: "Helvetica",
-    width: "2.8in", // For thermal printer width
+    width: "2.8in", 
+    height:"100vh",// For thermal printer width
   },
   header: {
     fontSize: 7,
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
 interface BillPDFProps {
   items: MenuType[];
   tableNumber: number;
-  billNumber: number | string;
+  billNumber: string;
 }
 
 const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber }) => {

@@ -28,7 +28,7 @@ export const saveOrderDebounced = async (
       syncOrderToServer(latestOrderToSync.tableNumber, latestOrderToSync.items);
       latestOrderToSync = null;
     }
-  }, 5000); // 5 seconds delay
+  }, 500); // 0.5 seconds delay
 };
 
 /**

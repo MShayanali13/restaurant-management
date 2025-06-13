@@ -8,7 +8,7 @@ import Select from "@/components/form/Select";
 import Loading from "@/app/Loading";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
-import { saveOrderToIndexedDB, getOrderFromIndexedDB, deleteOrderFromIndexedDB } from "@/lib/indexedDB";
+import { saveOrderToIndexedDB, deleteOrderFromIndexedDB } from "@/lib/indexedDB";
 import { saveOrderDebounced } from "@/lib/orderSync";
 
 import { MenuType } from "@/types/MenuType";
@@ -26,12 +26,13 @@ const vegOptions = [
 ];
 
 
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import BillPDF from "@/components/pos/BillDocument";
+import { pdf } from "@react-pdf/renderer";
+import BillDocument from "@/components/pos/BillDocument";
 
 
 export default function POSPage() {
-  const params = useParams();
+   const params = useParams();
+      
   const tableNumber = params?.id || "0";
 
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -40,10 +41,9 @@ export default function POSPage() {
   const [orderItems, setOrderItems] = useState<MenuType[]>([]);
 
   const [menuItems, setMenuItems] = useState<MenuType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState([true,true,false]);
 
   const router=useRouter()
-
   const fetchMenuItems = async () => {
     try {
       const res = await axios("/api/fetch-menu-items");
@@ -55,7 +55,7 @@ export default function POSPage() {
     } catch (err) {
       console.error("Failed to fetch menu items:", err);
     } finally {
-      setIsLoading(false);
+      setIsLoading([false,isLoading[1],isLoading[2]]);
     }
   };
 
@@ -63,28 +63,44 @@ export default function POSPage() {
     fetchMenuItems();
   }, []);
 
-  const fetchTempOrder = async () => {
+ useEffect(() => {
+  const loadOrder = async () => {
     if (!tableNumber) return;
 
-    const localOrder = await getOrderFromIndexedDB(String(tableNumber));
-    if (localOrder?.items) {
-      setOrderItems(localOrder.items);
+    try {
+      // Try fetching from server first
+      
+      const res =  await axios( {
+        url:`/api/fetch-temp-order`,
+      method: "POST",
+      data:JSON.stringify({
+        tableNumber
+      })
+    });
+const data=await res.data
+      if (data.ok && data.message.items?.length > 0) {
+        setOrderItems(data.message.items); // ✅ use latest 
+        await saveOrderToIndexedDB(String(tableNumber), data.message.items); // sync local
+        return;
+      }
+    } catch (e) {
+      console.warn("[⚠️] Fetch from server failed, falling back to local", e);
     }
 
-    try {
-      const res = await axios.get(`/api/fetch-temp-order?tableNumber=${tableNumber}`);
-      if (res.data.ok && res.data.message.items?.length > 0) {
-        setOrderItems(res.data.message.items);
-        saveOrderToIndexedDB(String(tableNumber), res.data.message.items);
-      }
-    } catch (error) {
-      console.error("Error fetching from server:", error);
-    }
+    // // If server failed, fall back to local
+    // const localData = await getOrderFromIndexedDB(String(tableNumber));
+    // if (localData?.items?.length > 0) {
+    //   setOrderItems(localData.items);
+    // } else {
+    //   setOrderItems([]);
+    // }
+
+     setIsLoading([isLoading[0],false,isLoading[2]]);
+
   };
 
-  useEffect(() => {
-    fetchTempOrder();
-  }, [fetchTempOrder]);
+  loadOrder();
+}, [tableNumber]);
 
   useEffect(() => {
     const syncOnReconnect = () => {
@@ -100,39 +116,94 @@ export default function POSPage() {
   }, [orderItems, tableNumber]);
 
 
+
   const handleAdd = (item: MenuType) => {
-    setOrderItems((prev) => {
-      const updatedItems = prev.some((i) => i._id === item._id)
-        ? prev.map((i) =>
+  setOrderItems((prev) => {
+    const updatedItems = prev.some((i) => i._id === item._id)
+      ? prev.map((i) =>
           i._id === item._id ? { ...i, quantity: (i.quantity || 0) + 1 } : i
         )
-        : [...prev, { ...item, quantity: 1 }];
-      console.log(tableNumber, orderItems)
-      saveOrderDebounced(String(tableNumber), updatedItems); // IndexedDB + debounce sync
+      : [...prev, { ...item, quantity: 1 }];
+    
+    // ✅ Use updatedItems directly (not stale orderItems)
+    saveOrderDebounced(String(tableNumber), updatedItems);
 
-        axios.post("/api/update-table-status", {
-      tableNumber,
-      status: "running",
-    });
+    // ✅ No need to log stale orderItems
+    return updatedItems;
+  });
 
-      // MongoDB temp save
-      return updatedItems;
-    });
-  };
-  const handleRemove = (item: MenuType) => {
-    setOrderItems((prev) => {
-      const updatedItems = prev
-        .map((i) =>
-          i._id === item._id ? { ...i, quantity: (i.quantity || 0) - 1 } : i
-        )
-        .filter((i) => (i.quantity || 0) > 0);
-      console.log(tableNumber, orderItems)
-      saveOrderDebounced(String(tableNumber), updatedItems);
 
-      return updatedItems;
-    });
-  };
+};
 
+const handleRemove = (item: MenuType) => {
+  setOrderItems((prev) => {
+    const updatedItems = prev
+      .map((i) =>
+        i._id === item._id ? { ...i, quantity: (i.quantity || 0) - 1 } : i
+      )
+      .filter((i) => (i.quantity || 0) > 0);
+
+    saveOrderDebounced(String(tableNumber), updatedItems);
+    return updatedItems;
+  });
+
+
+  
+
+};
+
+useEffect(()=>{
+  if(orderItems.length<1){
+    axios.post("/api/update-table-status", {
+    tableNumber,
+    status: "available",
+  });
+}else{
+  axios.post("/api/update-table-status", {
+    tableNumber,
+    status: "running",
+  });
+}
+},[orderItems])
+
+const generateBillNumber = async (
+ 
+) => {
+
+
+  // 1. Fetch number of bills already created (for serial number)
+  const res = await axios("/api/fetch-bills");
+  const data=res.data
+  if(data.count){  
+  const serial = String(data.count+1).padStart(4, "0"); // e.g., "007"
+console.log(serial)
+  return `B-${serial}`;
+}
+
+};
+
+const handleOpenPDF = async (
+  items: MenuType[],
+  tableNumber: number,
+  billNumber: string
+) => {
+  if(billNumber){
+  console.log(billNumber)
+  const blob = await pdf(
+    <BillDocument
+      items={items}
+      tableNumber={tableNumber}
+      billNumber={billNumber}
+    />
+  ).toBlob();
+
+   // Create a URL to the PDF Blob
+  const blobUrl = URL.createObjectURL(blob);
+
+  // Open the Blob URL directly in a new tab
+  window.open(blobUrl, "_blank");
+}
+};
 
   const filteredItems = menuItems.filter(
     (item) =>
@@ -143,6 +214,7 @@ export default function POSPage() {
   const handleSaveBill = async () => {
     // Save to DB
     try {
+      setIsLoading([isLoading[0],isLoading[1],true])
       await fetch("/api/save-bill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,7 +223,7 @@ export default function POSPage() {
           tableNumber: tableNumber,
         }),
       });
-
+ setIsLoading([isLoading[0],isLoading[1],false])
        await fetch(`/api/delete-temp-order`, {
       method: "DELETE",
       body:JSON.stringify({
@@ -159,29 +231,36 @@ export default function POSPage() {
       })
     });
 
-
-
- // ✅ Mark table as available
+    
+    // ✅ Mark table as available
     await axios.post("/api/update-table-status", {
       tableNumber,
       status: "available",
     });
-
-
+    
+    
     // ✅ Clear IndexedDB
     await deleteOrderFromIndexedDB(String(tableNumber));
-
-
+    
+    
     setOrderItems([]);
-
-
+    const bill=await generateBillNumber()
+    if(bill){
+    handleOpenPDF(orderItems, Number(tableNumber), String(bill))
+    }
     router.push("/POS");
     } catch (e) {
       console.error("Saving error", e);
     }
   };
 
-  if (isLoading) return <Loading />;
+// useEffect(()=>{
+// if(orderItems.length<1){
+//    setOrderItems([]);
+// }
+// },[])
+
+  if (isLoading[0]&&isLoading[1]) return <Loading />;
 
   return (
     <Suspense fallback={<Loading />}>
@@ -248,7 +327,7 @@ export default function POSPage() {
             {/* Filtered Menu Items */}
             <div className="mt-6 divide-y divide-gray-200 dark:divide-gray-700 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
               {filteredItems.map((item) => {
-                const inOrder = orderItems.find((o) => o._id === item._id);
+                const inOrder = orderItems?.find((o) => o._id === item._id);
                 return (
                   <div key={item._id} className="py-3 flex justify-between items-center">
                     <div>
@@ -293,17 +372,19 @@ export default function POSPage() {
               )}
             </div>
             {/* <Button onClick={handleSaveBill} className="w-full mt-4">Generate Bill</Button> */}
-            {orderItems.length > 0 && (
+            {orderItems?.length > 0 && (
+<>
+ {/* <PDFViewer style={{ width: "100%", height: "800px" }} showToolbar={false}>
+     
+  </PDFViewer> */}
+    
+      <Button className="w-full mt-4" onClick={handleSaveBill}>
+        {isLoading[2] ? "Preparing..." : "Generate Bill"}
+      </Button>
+    
+   
+  </>
 
-              <PDFDownloadLink
-                document={<BillPDF items={orderItems} tableNumber={parseInt(Array.isArray(tableNumber) ? tableNumber[0] : tableNumber)}
-      billNumber={"D23-1542"} />}
-                fileName={`Bill_Table_${tableNumber}.pdf`}
-              >
-                <Button className="w-full mt-4" onClick={handleSaveBill}>
-                  Download Bill  </Button>
-
-              </PDFDownloadLink>
 
             )}
 

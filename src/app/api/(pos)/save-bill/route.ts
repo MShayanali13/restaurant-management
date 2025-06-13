@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { items, tableNumber } = await req.json();
 
     if (!Array.isArray(items) || !tableNumber) {
-      return NextResponse.json({ success: false, error: "Invalid items or table number" });
+      return NextResponse.json({ ok: false, error: "Invalid items or table number" });
     }
 
     await connectDB();

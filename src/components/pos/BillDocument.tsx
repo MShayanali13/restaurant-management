@@ -96,9 +96,9 @@ interface BillPDFProps {
   items: MenuType[];
   tableNumber: number;
   billNumber: string;
-includeGST?:Boolean;
- customerName?:String;
-    customerPhone?:String,
+includeGST?:boolean;
+ customerName?:string;
+    customerPhone?:string,
   }
 
 const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber,includeGST,customerName,customerPhone }) => {

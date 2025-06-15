@@ -16,6 +16,9 @@ const BillSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  customerName:String,
+  customerPhone:String,
+  includeGST:String
 });
 
 export const Bill = mongoose.models.Bill || mongoose.model("Bill", BillSchema);

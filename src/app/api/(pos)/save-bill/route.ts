@@ -5,7 +5,7 @@ import {Bill} from "@/models/Bill";
 
 export async function POST(req: Request) {
   try {
-    const { items, tableNumber } = await req.json();
+    const { items, tableNumber,customerName,customerPhone,includeGST } = await req.json();
 
     if (!Array.isArray(items) || !tableNumber) {
       return NextResponse.json({ ok: false, error: "Invalid items or table number" });
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       tableNumber,
       items: items,
       total: items.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0),
+      customerName,customerPhone,includeGST
     });
 
 

@@ -96,13 +96,20 @@ interface BillPDFProps {
   items: MenuType[];
   tableNumber: number;
   billNumber: string;
-}
+includeGST?:Boolean;
+ customerName?:String;
+    customerPhone?:String,
+  }
 
-const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber }) => {
-  const total = items.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0);
-  const cgst = (total * 0.025).toFixed(2);
-  const sgst = (total * 0.025).toFixed(2);
-  const grandTotal = (total + parseFloat(cgst) + parseFloat(sgst)).toFixed(2);
+const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber,includeGST,customerName,customerPhone }) => {
+  // const total = items.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0);
+  // const cgst = (total * 0.025).toFixed(2);
+  // const sgst = (total * 0.025).toFixed(2);
+  // const grandTotal = (total + parseFloat(cgst) + parseFloat(sgst)).toFixed(2);
+   const total = items.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0);
+const cgst = includeGST ? parseFloat((total * 0.025).toFixed(2)) : 0;
+const sgst = includeGST ? parseFloat((total * 0.025).toFixed(2)) : 0;
+const grandTotal = (total + cgst + sgst).toFixed(2);
 
   return (
     <Document>
@@ -114,6 +121,11 @@ const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber }) => 
           <Text>Table No: {tableNumber}</Text>
           <Text>Bill No: {billNumber}</Text>
         </View>
+        
+        <View style={styles.infoRow}>
+<Text>Customer: {customerName || "N/A"}</Text>
+<Text>Phone: {customerPhone || "N/A"}</Text>
+</View>
 
         <View style={styles.dateTimeRow}>
           <Text>Date: {formatDate()}</Text>
@@ -148,6 +160,8 @@ const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber }) => 
           <Text>₹{total.toFixed(2)}</Text>
         </View>
 
+        {includeGST && (
+  <>
         <View style={styles.row}>
           <Text style={styles.colItem}>CGST 2.5%</Text>
           <Text style={styles.colAmount}>₹{cgst}</Text>
@@ -161,6 +175,8 @@ const BillPDF: React.FC<BillPDFProps> = ({ items, tableNumber, billNumber }) => 
           <Text>Grand Total</Text>
           <Text>₹{grandTotal}</Text>
         </View>
+</>
+        )}
 
         <Text style={styles.footer}>Thanks! Visit Again 🙏</Text>
       </Page>

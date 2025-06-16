@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 
 const BillSchema = new mongoose.Schema({
-  orderId: String,
+   _id: String,
   items: [
     {
       _id: String,
@@ -18,7 +18,7 @@ const BillSchema = new mongoose.Schema({
   },
   customerName:String,
   customerPhone:String,
-  includeGST:String
+  includeGST:Boolean
 });
 
 export const Bill = mongoose.models.Bill || mongoose.model("Bill", BillSchema);

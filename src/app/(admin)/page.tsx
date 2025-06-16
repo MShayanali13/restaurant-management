@@ -34,7 +34,7 @@ const [isLoading,setIsLoading]=useState(false)
        <div className="col-span-12 space-y-6 xl:col-span-7">
         <div className="p-4 bg-white shadow rounded">
         <h2 className="text-sm text-gray-500">Revenue Collected</h2>
-          <p className="text-2xl font-bold">₹{totalRevenue}</p>
+          <p className="text-2xl font-bold">₹ {totalRevenue}</p>
           </div>
        </div>
 

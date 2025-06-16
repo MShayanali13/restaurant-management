@@ -6,5 +6,6 @@ import {connectDB} from "@/lib/db";
 export async function GET() {
   await connectDB();
   const count = await Bill.countDocuments();
-  return NextResponse.json({ count });
+  const bills= await Bill.find()
+  return NextResponse.json({ count,bills ,ok:true});
 }

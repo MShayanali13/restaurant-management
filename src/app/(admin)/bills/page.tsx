@@ -161,7 +161,7 @@ const Bills = () => {
 
   return (
     <Suspense fallback={<Loading />}>
-      <PageBreadcrumb pageTitle="Menu Management" />
+      <PageBreadcrumb pageTitle="Bills" />
       <div className=" rounded-2xl border border-gray-200 bg-white px-3 py-5 dark:border-gray-800 dark:bg-white/[0.03] xl:px-8 xl:py-10">
         <div className="p-6">
           {/* Page Header */}

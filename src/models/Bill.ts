@@ -2,23 +2,22 @@
 import mongoose from "mongoose";
 
 const BillSchema = new mongoose.Schema({
-   _id: String,
-  items: [
+ items: [
     {
-      _id: String,
-      name: String,
-      price: Number,
-      quantity: Number,
+      _id: { type: String, required: true },
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
+      quantity: { type: Number, required: true },
     },
   ],
-  total: Number,
+  total: { type: Number, required: true },
   createdAt: {
     type: Date,
     default: Date.now,
   },
-  customerName:String,
-  customerPhone:String,
-  includeGST:Boolean
+  customerName: { type: String },
+  customerPhone: { type: String },
+  includeGST: { type: Boolean, required: true },
 });
 
 export const Bill = mongoose.models.Bill || mongoose.model("Bill", BillSchema);

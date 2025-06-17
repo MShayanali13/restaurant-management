@@ -13,7 +13,7 @@ export async function DELETE(req: NextRequest) {
 
     const result = await Bill.deleteMany({ _id: { $in: ids } });
 
-    return NextResponse.json({ ok: true, message:'deleted items successfully!',deletedCount: result.deletedCount });
+    return NextResponse.json({ ok: true, message:'deleted items successfully!',deletedCount: result.deletedCount,result });
   } catch (error) {
     console.error("Delete error:", error);
     return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });

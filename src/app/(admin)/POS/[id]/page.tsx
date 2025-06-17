@@ -106,6 +106,8 @@ export default function POSPage() {
     loadOrder();
   }, [tableNumber]);
 
+
+  
   useEffect(() => {
     const syncOnReconnect = () => {
       console.log("[🌐] Back online. Resyncing...");
@@ -386,10 +388,12 @@ includeGST={includeGST}
                 />
               </div>
               <div className="mb-2 dark:text-white">
-                <label className="block text-sm font-medium">Phone</label>
+                <label className="block text-sm font-medium">
+                  Phone
+                  </label>
                 <input
 
-                  type="text"
+                  type="phone"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   className="border w-full px-2 py-1 text-sm rounded-2xl"
